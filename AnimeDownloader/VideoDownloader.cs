@@ -6,4 +6,5 @@ namespace AnimeDownloader;
 
 internal class VideoDownloader
 {
+
 }
