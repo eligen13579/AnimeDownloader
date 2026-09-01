@@ -1,4 +1,8 @@
-﻿namespace AnimeDownloader;
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
+
+namespace AnimeDownloader;
 
 //Ablaufplan:
 //1. video URL speichern.
