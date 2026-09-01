@@ -21,3 +21,17 @@ var videoUrl = new Uri(
     );
 var urlManager = new UrlManager { VideoUrl = videoUrl };
 var list = await urlManager.GetSegmentUrlList();
+
+var outputPath = AnsiConsole.Ask<string>("Enter the [green]output file path[/]:");
+var videoDownloader = new VideoDownloader();
+
+await AnsiConsole.Progress()
+    .StartAsync(async ctx =>
+    {
+        var task = ctx.AddTask("[green]Downloading video[/]");
+        await videoDownloader.DownloadAsync(list, outputPath, new Progress<(int current, int total)>(progress =>
+        {
+            task.Value = (double)progress.current / progress.total * 100;
+            task.MaxValue = 100;
+        }));
+    });

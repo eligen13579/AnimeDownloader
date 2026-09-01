@@ -44,7 +44,7 @@ internal class UrlManager
             }
         }
 
-        return segmentUrlList;
+        return segmentUrlList.Take(segmentUrlList.Count - 1).ToList();
     }
 
     private void SetBaseUrl()
