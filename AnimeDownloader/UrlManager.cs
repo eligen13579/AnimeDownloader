@@ -55,7 +55,7 @@ internal class UrlManager
 
     private async Task<string> GetIndex()
     {
-        var index = "";
+        var index = ""; // TODO: index als array und Auswahlliste aus #EXT-X-STREAM-INF - objecten aus contentArray.
 
         var content = await _httpClient.GetStringAsync(VideoUrl);
 

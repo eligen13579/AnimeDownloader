@@ -7,6 +7,7 @@ namespace AnimeDownloader;
 internal class VideoDownloader
 {
     private readonly HttpClient _httpClient = new HttpClient();
+    private readonly VideoRemuxer _videoRemuxer = new VideoRemuxer();
 
     public VideoDownloader()
     {

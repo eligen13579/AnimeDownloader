@@ -15,14 +15,15 @@
 using AnimeDownloader;
 using Spectre.Console;
 
+Console.OutputEncoding = System.Text.Encoding.UTF8;
+
 var videoUrl = new Uri(
-        //AnsiConsole.Ask<string>("Enter the [green]video URL[/]:")
-        "https://ugc-cdn-caching-n3yghqbfxup5ihfevl.cloudwindow-route.com/engine/hls2/01/08865/pmpo7g0eb6ty_,n,.urlset/master.m3u8?t=mGpgOg0I-kLRp5oNY6ukpJdgHXDACIG6W5g71gMAdTM&s=1788261807&e=14400&f=45196985&node=FfU+Rt4APH9JdMWjBDprDVHYvabsgKPG25Nt7j3icOI=&i=91.39&sp=2500&asn=3320&q=n&rq=IjOfdPAwHScbBHKbmFmP2zDB9pn79ZNKmXtYgeku"
+        AnsiConsole.Ask<string>("Enter the [green]video URL[/]:")
     );
 var urlManager = new UrlManager { VideoUrl = videoUrl };
 var list = await urlManager.GetSegmentUrlList();
 
-var outputPath = AnsiConsole.Ask<string>("Enter the [green]output file path[/]:");
+var outputPath = AnsiConsole.Ask<string>("Enter the [green]output file path (add .mp4)[/]:");
 var videoDownloader = new VideoDownloader();
 
 await AnsiConsole.Progress()
@@ -35,3 +36,13 @@ await AnsiConsole.Progress()
             task.MaxValue = 100;
         }));
     });
+
+var m = new VideoRemuxer();
+
+var newOut = outputPath.Substring(0, outputPath.Length - 4) + "Remux.mp4";
+
+if (AnsiConsole.Confirm("Do you want to remux the remux video?"))
+await AnsiConsole.Status()
+    .Start("Remuxing video...", async ctx =>
+        m.RemuxAsync(outputPath, newOut)
+    );
