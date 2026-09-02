@@ -18,23 +18,26 @@ using Spectre.Console;
 Console.OutputEncoding = System.Text.Encoding.UTF8;
 
 List<Uri> urls = [];
-string input = string.Empty;
-do
+var input = AnsiConsole.Ask<string>("Enter [green]video URL[/] add % where episode number is:");
+var from = AnsiConsole.Ask<int>("Enter [green]from[/] episode number:");
+var to = AnsiConsole.Ask<int>("Enter [green]to[/] episode number:");
+for (int i = from; i <= to; i++)
 {
-    input = AnsiConsole.Ask<string>("Enter [green]video URL[/] or leave empty to continue:", "");
-    if (!string.IsNullOrWhiteSpace(input))
-    {
-        urls.Add(new Uri(input));
-    }
+    var url = input.Replace("%", i.ToString());
+    urls.Add(new Uri(url));
 }
-while (!string.IsNullOrWhiteSpace(input));
+var basePath = AnsiConsole.Ask<string>("Enter the [green]base path[/] for the output files:");
+var name = AnsiConsole.Ask<string>("Enter the [green]name[/] for the output files:");
+var linkFinder = new LinkFinder(urls);
+var videoUrls = await linkFinder.ExtractAsync();
 
-foreach (Uri videoUrl in urls)
+var count = 0;
+foreach (var videoUrl in videoUrls)
 {
     var urlManager = new UrlManager { VideoUrl = videoUrl };
     var list = await urlManager.GetSegmentUrlList();
 
-    var outputPath = AnsiConsole.Ask<string>("Enter the [green]output file path (add .mp4)[/]:");
+    var outputPath = Path.Combine(basePath, $"{name}_{count++}.mp4");
     var videoDownloader = new VideoDownloader();
 
     await AnsiConsole.Progress()
@@ -52,13 +55,12 @@ foreach (Uri videoUrl in urls)
 
     var newOut = outputPath.Substring(0, outputPath.Length - 4) + "Remux.mp4";
 
-    if (AnsiConsole.Confirm("Do you want to remux the remux video?"))
-    {
+    
         await AnsiConsole.Status()
         .Start("Remuxing video...", async ctx =>
-            m.RemuxAsync(outputPath, newOut)
+            await m.RemuxAsync(outputPath, newOut)
         );
 
         File.Delete(outputPath);
-    }
+    
 }

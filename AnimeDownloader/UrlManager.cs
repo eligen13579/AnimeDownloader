@@ -29,16 +29,18 @@ internal class UrlManager
             SetBaseUrl();
         }
         List<Uri> segmentUrlList = [];
-
+        // TODO: Add a selection field that determines whether the resolution is prompted or the first is selected.
         var indexInfoList = await GetIndexInfoList();
 
-        var index = AnsiConsole.Prompt(
-                new SelectionPrompt<string>()
-                    .Title("Please select the [green]video[/]:")
-                    .PageSize(10)
-                    .AddChoices(indexInfoList.Select(i => i.Index).ToArray())
-                    .UseConverter(i => indexInfoList.First(index => index.Index == i).Info.ToString()) 
-            );
+        //var index = AnsiConsole.Prompt(
+        //        new SelectionPrompt<string>()
+        //            .Title("Please select the [green]video[/]:")
+        //            .PageSize(10)
+        //            .AddChoices(indexInfoList.Select(i => i.Index).ToArray())
+        //            .UseConverter(i => indexInfoList.First(index => index.Index == i).Info.ToString()) 
+        //    );
+
+        var index = indexInfoList.First().Index;
 
         var listUrl = new Uri(BaseUrl!, index);
 
