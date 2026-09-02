@@ -16,12 +16,29 @@ internal class UrlManager
     public Uri VideoUrl { get; init; }
     public Uri BaseUrl { get; private set; }
 
-    private readonly HttpClient _httpClient = new HttpClient();
+    public bool AutoselectFirstResolution { get; set; } = true;
 
-    public UrlManager()
+    private readonly HttpClient _httpClient = new HttpClient();
+    private bool _autoselectFirstResolution = true;
+
+    private Func<bool, List<(string Index, StreamInf Info)>, string> _getIndex = (autoselectFirstResolution, indexInfoList) => autoselectFirstResolution switch
+    {
+        true => indexInfoList.First().Index,
+        false => AnsiConsole.Prompt(
+            new SelectionPrompt<string>()
+                .Title("Please select the [green]video[/]:")
+                .PageSize(10)
+                .AddChoices(indexInfoList.Select(i => i.Index).ToArray())
+                .UseConverter(i => indexInfoList.First(index => index.Index == i).Info.ToString())
+        ),
+    };
+
+    public UrlManager(bool autoselectFirstResolution)
     {
         _httpClient.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)");
+        _autoselectFirstResolution = autoselectFirstResolution;
     }
+
     public async Task<List<Uri>> GetSegmentUrlList() 
     {
         if (BaseUrl == null)
@@ -29,18 +46,9 @@ internal class UrlManager
             SetBaseUrl();
         }
         List<Uri> segmentUrlList = [];
-        // TODO: Add a selection field that determines whether the resolution is prompted or the first is selected.
         var indexInfoList = await GetIndexInfoList();
 
-        //var index = AnsiConsole.Prompt(
-        //        new SelectionPrompt<string>()
-        //            .Title("Please select the [green]video[/]:")
-        //            .PageSize(10)
-        //            .AddChoices(indexInfoList.Select(i => i.Index).ToArray())
-        //            .UseConverter(i => indexInfoList.First(index => index.Index == i).Info.ToString()) 
-        //    );
-
-        var index = indexInfoList.First().Index;
+        var index = _getIndex(AutoselectFirstResolution, indexInfoList);
 
         var listUrl = new Uri(BaseUrl!, index);
 

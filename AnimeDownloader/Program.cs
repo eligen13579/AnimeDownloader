@@ -30,11 +30,12 @@ var basePath = AnsiConsole.Ask<string>("Enter the [green]base path[/] for the ou
 var name = AnsiConsole.Ask<string>("Enter the [green]name[/] for the output files:");
 var linkFinder = new LinkFinder(urls);
 var videoUrls = await linkFinder.ExtractAsync();
+var autoselectFirstResolution = AnsiConsole.Confirm("Do you want to [green]autoselect[/] the best resolution?");
 
 var count = 0;
 foreach (var videoUrl in videoUrls)
 {
-    var urlManager = new UrlManager { VideoUrl = videoUrl };
+    var urlManager = new UrlManager(autoselectFirstResolution) { VideoUrl = videoUrl };
     var list = await urlManager.GetSegmentUrlList();
 
     var outputPath = Path.Combine(basePath, $"{name}_{count++}.mp4");
