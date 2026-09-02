@@ -32,7 +32,7 @@ var linkFinder = new LinkFinder(urls);
 var videoUrls = await linkFinder.ExtractAsync();
 var autoselectFirstResolution = AnsiConsole.Confirm("Do you want to [green]autoselect[/] the best resolution?");
 
-var count = 0;
+var count = from;
 foreach (var videoUrl in videoUrls)
 {
     var urlManager = new UrlManager(autoselectFirstResolution) { VideoUrl = videoUrl };
@@ -57,11 +57,12 @@ foreach (var videoUrl in videoUrls)
     var newOut = outputPath.Substring(0, outputPath.Length - 4) + "Remux.mp4";
 
     
-        await AnsiConsole.Status()
+    await AnsiConsole.Status()
         .Start("Remuxing video...", async ctx =>
             await m.RemuxAsync(outputPath, newOut)
         );
 
-        File.Delete(outputPath);
-    
+    File.Delete(outputPath);
+    File.Copy(newOut, outputPath);
+    File.Delete(newOut);
 }
