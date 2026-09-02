@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Spectre.Console;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -15,12 +16,29 @@ internal class UrlManager
     public Uri VideoUrl { get; init; }
     public Uri BaseUrl { get; private set; }
 
-    private readonly HttpClient _httpClient = new HttpClient();
+    public bool AutoselectFirstResolution { get; set; } = true;
 
-    public UrlManager()
+    private readonly HttpClient _httpClient = new HttpClient();
+    private bool _autoselectFirstResolution = true;
+
+    private Func<bool, List<(string Index, StreamInf Info)>, string> _getIndex = (autoselectFirstResolution, indexInfoList) => autoselectFirstResolution switch
+    {
+        true => indexInfoList.First().Index,
+        false => AnsiConsole.Prompt(
+            new SelectionPrompt<string>()
+                .Title("Please select the [green]video[/]:")
+                .PageSize(10)
+                .AddChoices(indexInfoList.Select(i => i.Index).ToArray())
+                .UseConverter(i => indexInfoList.First(index => index.Index == i).Info.ToString())
+        ),
+    };
+
+    public UrlManager(bool autoselectFirstResolution)
     {
         _httpClient.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)");
+        _autoselectFirstResolution = autoselectFirstResolution;
     }
+
     public async Task<List<Uri>> GetSegmentUrlList() 
     {
         if (BaseUrl == null)
@@ -28,8 +46,10 @@ internal class UrlManager
             SetBaseUrl();
         }
         List<Uri> segmentUrlList = [];
+        var indexInfoList = await GetIndexInfoList();
 
-        var index = await GetIndex();
+        var index = _getIndex(AutoselectFirstResolution, indexInfoList);
+
         var listUrl = new Uri(BaseUrl!, index);
 
         var listContent = await _httpClient.GetStringAsync(listUrl);
@@ -44,7 +64,7 @@ internal class UrlManager
             }
         }
 
-        return segmentUrlList;
+        return segmentUrlList.Take(segmentUrlList.Count - 1).ToList();
     }
 
     private void SetBaseUrl()
@@ -53,23 +73,34 @@ internal class UrlManager
         BaseUrl = new Uri(baseUrl);
     }
 
-    private async Task<string> GetIndex()
+    private async Task<List<(string Index, StreamInf Info)>> GetIndexInfoList()
     {
-        var index = "";
+        List<string> indexList = [];
+        List<StreamInf> streamInfList = [];
 
         var content = await _httpClient.GetStringAsync(VideoUrl);
 
         if (content != null) 
         {
             var contentArray = content.Split('\n', '\r');
-            foreach (var l in contentArray)
+            for ( var i = 0; i < contentArray.Length; i++) 
             {
-                if (!l.Contains('#') && !string.IsNullOrWhiteSpace(l))
-                    index = l;
+                var c = contentArray[i];
+                if (!c.Contains('#') && !string.IsNullOrWhiteSpace(c))
+                {
+                    indexList.Add(c);
+                    streamInfList.Add(StreamInf.GetStreamInf(contentArray[i - 1]));
+                }
+                    
             }
         }
 
-        return index;
+        List<(string Index, StreamInf Info)> indexInfoList = [];
+        for (var i = 0; i < indexList.Count; i++)
+        {
+            indexInfoList.Add((indexList[i], streamInfList[i]));
+        }
+        return indexInfoList;
     }
 
 }

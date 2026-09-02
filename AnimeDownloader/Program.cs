@@ -15,9 +15,54 @@
 using AnimeDownloader;
 using Spectre.Console;
 
-var videoUrl = new Uri(
-        //AnsiConsole.Ask<string>("Enter the [green]video URL[/]:")
-        "https://ugc-cdn-caching-n3yghqbfxup5ihfevl.cloudwindow-route.com/engine/hls2/01/08865/pmpo7g0eb6ty_,n,.urlset/master.m3u8?t=mGpgOg0I-kLRp5oNY6ukpJdgHXDACIG6W5g71gMAdTM&s=1788261807&e=14400&f=45196985&node=FfU+Rt4APH9JdMWjBDprDVHYvabsgKPG25Nt7j3icOI=&i=91.39&sp=2500&asn=3320&q=n&rq=IjOfdPAwHScbBHKbmFmP2zDB9pn79ZNKmXtYgeku"
-    );
-var urlManager = new UrlManager { VideoUrl = videoUrl };
-var list = await urlManager.GetSegmentUrlList();
+Console.OutputEncoding = System.Text.Encoding.UTF8;
+
+List<Uri> urls = [];
+var input = AnsiConsole.Ask<string>("Enter [green]video URL[/] add % where episode number is:");
+var from = AnsiConsole.Ask<int>("Enter [green]from[/] episode number:");
+var to = AnsiConsole.Ask<int>("Enter [green]to[/] episode number:");
+for (int i = from; i <= to; i++)
+{
+    var url = input.Replace("%", i.ToString());
+    urls.Add(new Uri(url));
+}
+var basePath = AnsiConsole.Ask<string>("Enter the [green]base path[/] for the output files:");
+var name = AnsiConsole.Ask<string>("Enter the [green]name[/] for the output files:");
+var linkFinder = new LinkFinder(urls);
+var videoUrls = await linkFinder.ExtractAsync();
+var autoselectFirstResolution = AnsiConsole.Confirm("Do you want to [green]autoselect[/] the best resolution?");
+
+var count = from;
+foreach (var videoUrl in videoUrls)
+{
+    var urlManager = new UrlManager(autoselectFirstResolution) { VideoUrl = videoUrl };
+    var list = await urlManager.GetSegmentUrlList();
+
+    var outputPath = Path.Combine(basePath, $"{name}_{count++}.mp4");
+    var videoDownloader = new VideoDownloader();
+
+    await AnsiConsole.Progress()
+        .StartAsync(async ctx =>
+        {
+            var task = ctx.AddTask("[green]Downloading video[/]");
+            await videoDownloader.DownloadAsync(list, outputPath, new Progress<(int current, int total)>(progress =>
+            {
+                task.Value = (double)progress.current / progress.total * 100;
+                task.MaxValue = 100;
+            }));
+        });
+
+    var m = new VideoRemuxer();
+
+    var newOut = outputPath.Substring(0, outputPath.Length - 4) + "Remux.mp4";
+
+    
+    await AnsiConsole.Status()
+        .Start("Remuxing video...", async ctx =>
+            await m.RemuxAsync(outputPath, newOut)
+        );
+
+    File.Delete(outputPath);
+    File.Copy(newOut, outputPath);
+    File.Delete(newOut);
+}
