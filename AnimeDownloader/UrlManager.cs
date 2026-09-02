@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Spectre.Console;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -28,8 +29,19 @@ internal class UrlManager
             SetBaseUrl();
         }
         List<Uri> segmentUrlList = [];
+        // TODO: Add a selection field that determines whether the resolution is prompted or the first is selected.
+        var indexInfoList = await GetIndexInfoList();
 
-        var index = await GetIndex();
+        //var index = AnsiConsole.Prompt(
+        //        new SelectionPrompt<string>()
+        //            .Title("Please select the [green]video[/]:")
+        //            .PageSize(10)
+        //            .AddChoices(indexInfoList.Select(i => i.Index).ToArray())
+        //            .UseConverter(i => indexInfoList.First(index => index.Index == i).Info.ToString()) 
+        //    );
+
+        var index = indexInfoList.First().Index;
+
         var listUrl = new Uri(BaseUrl!, index);
 
         var listContent = await _httpClient.GetStringAsync(listUrl);
@@ -53,23 +65,34 @@ internal class UrlManager
         BaseUrl = new Uri(baseUrl);
     }
 
-    private async Task<string> GetIndex()
+    private async Task<List<(string Index, StreamInf Info)>> GetIndexInfoList()
     {
-        var index = ""; // TODO: index als array und Auswahlliste aus #EXT-X-STREAM-INF - objecten aus contentArray.
+        List<string> indexList = [];
+        List<StreamInf> streamInfList = [];
 
         var content = await _httpClient.GetStringAsync(VideoUrl);
 
         if (content != null) 
         {
             var contentArray = content.Split('\n', '\r');
-            foreach (var l in contentArray)
+            for ( var i = 0; i < contentArray.Length; i++) 
             {
-                if (!l.Contains('#') && !string.IsNullOrWhiteSpace(l))
-                    index = l;
+                var c = contentArray[i];
+                if (!c.Contains('#') && !string.IsNullOrWhiteSpace(c))
+                {
+                    indexList.Add(c);
+                    streamInfList.Add(StreamInf.GetStreamInf(contentArray[i - 1]));
+                }
+                    
             }
         }
 
-        return index;
+        List<(string Index, StreamInf Info)> indexInfoList = [];
+        for (var i = 0; i < indexList.Count; i++)
+        {
+            indexInfoList.Add((indexList[i], streamInfList[i]));
+        }
+        return indexInfoList;
     }
 
 }
