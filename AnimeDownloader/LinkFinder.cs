@@ -12,9 +12,9 @@ public class LinkFinder
         _videoLinks = videoLinks;
     }
 
-    public async Task<List<Uri>> ExtractAsync(TimeSpan? timeoutPerVideo = null)
+    public async Task<List<(Uri Url, string Title, string Description, string episodeSeason)>> ExtractAsync(TimeSpan? timeoutPerVideo = null)
     {
-        var gefundeneUrls = new List<Uri>();
+        var gefundeneUrls = new List<(Uri Url, string Title, string Description, string episodeSeason)>();
         var timeout = timeoutPerVideo ?? TimeSpan.FromMinutes(2);
 
         using var playwright = await Playwright.CreateAsync();
@@ -24,6 +24,9 @@ public class LinkFinder
         });
 
         var page = await browser.NewPageAsync();
+
+        var titleDescFinder = new TitleDescFinder(page);
+        
 
         foreach (var link in _videoLinks)
         {
@@ -53,8 +56,12 @@ public class LinkFinder
 
                 if (completedTask == tcs.Task)
                 {
+                    var title = await titleDescFinder.GetTitle();
+                    var episodeSeason = await titleDescFinder.GetEpisodeSeason();
+                    var completeTitle = $"{title} - {episodeSeason}";
+                    var description = await titleDescFinder.GetDescription();
                     var gefundeneUrl = await tcs.Task;
-                    gefundeneUrls.Add(new Uri(gefundeneUrl));
+                    gefundeneUrls.Add((new Uri(gefundeneUrl), completeTitle, description, episodeSeason));
                     Console.WriteLine($"  -> Gefunden: {gefundeneUrl}");
                 }
                 else
