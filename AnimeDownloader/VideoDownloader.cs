@@ -37,7 +37,8 @@ internal class VideoDownloader
         {
             try
             {
-                return await _httpClient.GetByteArrayAsync(segmentUri, cancellationToken);
+                var response = await _httpClient.GetByteArrayAsync(segmentUri, cancellationToken);
+                return response;
             }
             catch (Exception ex) when (attempt < maxRetry)
             {

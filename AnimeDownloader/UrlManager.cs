@@ -59,8 +59,18 @@ internal class UrlManager
             var listContentArray = listContent.Split('\n', '\r');
             foreach (var l in listContentArray)
             {
-                if (!l.Contains('#'))
-                    segmentUrlList.Add(new Uri(BaseUrl!, l));
+                if (!l.Contains('#') && l.StartsWith("seg"))
+                {
+                    try
+                    {
+                        segmentUrlList.Add(new Uri(BaseUrl!, l));
+
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Error creating URI for segment: {l}. Exception: {ex.Message}");
+                    }
+                }
             }
         }
 
